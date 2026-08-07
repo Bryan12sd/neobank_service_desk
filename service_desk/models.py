@@ -4,32 +4,28 @@ from django.db import models
 from django.utils import timezone
 
 
+# ---------------------------------------------------------------------------
+# Profile: extends Django's built-in User (does not replace it).
+# The user's ROLE is NOT stored here as text: it is managed with
+# django.contrib.auth.models.Group ("CLIENT" / "AGENT" / "DEPARTMENT_HEAD").
+# This model only adds the extra fields required by the NEOBANK case
+# (national id, phone).
+# ---------------------------------------------------------------------------
 class Profile(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="profile",
     )
-    national_id = models.CharField(
-        "Cédula",
-        max_length=10,
-        unique=True,
-    )
-    phone = models.CharField(
-        "Teléfono",
-        max_length=15,
-        blank=True,
-    )
+    national_id = models.CharField("Cédula", max_length=10, unique=True)
+    phone = models.CharField("Teléfono", max_length=15, blank=True)
 
     class Meta:
         verbose_name = "Perfil"
         verbose_name_plural = "Perfiles"
 
     def __str__(self):
-        return (
-            f"{self.user.get_full_name() or self.user.username} "
-            f"({self.national_id})"
-        )
+        return f"{self.user.get_full_name() or self.user.username} ({self.national_id})"
 
 
 class Ticket(models.Model):
@@ -37,7 +33,6 @@ class Ticket(models.Model):
     REQUEST_INQUIRY = "INQUIRY"
     REQUEST_COMPLAINT = "COMPLAINT"
     REQUEST_SUGGESTION = "SUGGESTION"
-
     REQUEST_TYPE_CHOICES = [
         (REQUEST_INCIDENT, "Incidente"),
         (REQUEST_INQUIRY, "Consulta"),
@@ -51,7 +46,6 @@ class Ticket(models.Model):
     STATUS_ON_HOLD = "ON_HOLD"
     STATUS_RESOLVED = "RESOLVED"
     STATUS_CLOSED = "CLOSED"
-
     STATUS_CHOICES = [
         (STATUS_OPEN, "Abierto"),
         (STATUS_ASSIGNED, "Asignado"),
@@ -62,14 +56,12 @@ class Ticket(models.Model):
     ]
 
     ticket_number = models.AutoField(primary_key=True)
-
     client = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="tickets_created",
         verbose_name="Cliente",
     )
-
     agent = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -78,44 +70,19 @@ class Ticket(models.Model):
         related_name="tickets_assigned",
         verbose_name="Agente asignado",
     )
-
-    subject = models.CharField(
-        "Asunto",
-        max_length=150,
-    )
-
-    description = models.TextField(
-        "Descripción",
-    )
-
+    subject = models.CharField("Asunto", max_length=150)
+    description = models.TextField("Descripción")
     request_type = models.CharField(
-        "Tipo de solicitud",
-        max_length=20,
-        choices=REQUEST_TYPE_CHOICES,
+        "Tipo de solicitud", max_length=20, choices=REQUEST_TYPE_CHOICES
     )
-
-    incident_date = models.DateTimeField(
-        "Fecha del incidente",
-    )
-
+    incident_date = models.DateTimeField("Fecha del incidente")
     evidence = models.FileField(
-        "Evidencia",
-        upload_to="evidence/%Y/%m/",
-        blank=True,
-        null=True,
+        "Evidencia", upload_to="evidence/%Y/%m/", blank=True, null=True
     )
-
     status = models.CharField(
-        "Estado",
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default=STATUS_OPEN,
+        "Estado", max_length=20, choices=STATUS_CHOICES, default=STATUS_OPEN
     )
-
-    created_at = models.DateTimeField(
-        "Fecha de creación",
-        auto_now_add=True,
-    )
+    created_at = models.DateTimeField("Fecha de creación", auto_now_add=True)
 
     class Meta:
         verbose_name = "Ticket"
@@ -126,57 +93,29 @@ class Ticket(models.Model):
         return f"#{self.ticket_number} - {self.subject}"
 
     def clean(self):
-        super().clean()
 
-        # Solo se bloquea una fecha pasada al crear el ticket.
-        if (
-                self._state.adding
-                and self.incident_date
-                and self.incident_date < timezone.now()
-        ):
+        if self._state.adding and self.incident_date and self.incident_date < timezone.now():
             raise ValidationError(
-                {
-                    "incident_date": (
-                        "La fecha del incidente no puede ser anterior "
-                        "a la fecha y hora actual."
-                    )
-                }
+                {"incident_date": "La fecha del incidente no puede ser anterior a la fecha y hora actual."}
             )
 
     def save(self, *args, **kwargs):
         self.full_clean()
-        return super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
 
 class TicketUpdate(models.Model):
     ticket = models.ForeignKey(
-        Ticket,
-        on_delete=models.CASCADE,
-        related_name="updates",
-        verbose_name="Ticket",
+        Ticket, on_delete=models.CASCADE, related_name="updates", verbose_name="Ticket"
     )
-
     employee = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        related_name="ticket_updates",
-        verbose_name="Empleado",
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Empleado"
     )
-
     status = models.CharField(
-        "Estado",
-        max_length=20,
-        choices=Ticket.STATUS_CHOICES,
+        "Estado", max_length=20, choices=Ticket.STATUS_CHOICES
     )
-
-    comment = models.TextField(
-        "Comentario",
-    )
-
-    updated_at = models.DateTimeField(
-        "Fecha de seguimiento",
-        auto_now_add=True,
-    )
+    comment = models.TextField("Comentario")
+    updated_at = models.DateTimeField("Fecha de seguimiento", auto_now_add=True)
 
     class Meta:
         verbose_name = "Seguimiento"
@@ -184,21 +123,10 @@ class TicketUpdate(models.Model):
         ordering = ["-updated_at"]
 
     def __str__(self):
-        return (
-            f"Seguimiento de #{self.ticket_id} "
-            f"- {self.get_status_display()}"
-        )
+        return f"Seguimiento de #{self.ticket_id} - {self.status}"
 
     def save(self, *args, **kwargs):
-        is_new = self._state.adding
-
-        result = super().save(*args, **kwargs)
-
-        if is_new:
-            Ticket.objects.filter(
-                ticket_number=self.ticket_id
-            ).update(status=self.status)
-
-            self.ticket.status = self.status
-
-        return result
+   
+        super().save(*args, **kwargs)
+        self.ticket.status = self.status
+        self.ticket.save(update_fields=["status"])
