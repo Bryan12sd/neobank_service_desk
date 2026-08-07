@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load service_desk_extras %}
+{% block title %}Asignar Ticket #{{ ticket.ticket_number }} - NEOBANK{% endblock %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Asignar Ticket #{{ ticket.ticket_number }}</h1>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Detalle del ticket</h6>
+    </div>
+    <div class="card-body">
+        <p><strong>Cliente:</strong> {{ ticket.client.get_full_name|default:ticket.client.username }}</p>
+        <p><strong>Asunto:</strong> {{ ticket.subject }}</p>
+        <p><strong>Descripción:</strong> {{ ticket.description }}</p>
+        <p><strong>Tipo:</strong> {{ ticket.get_request_type_display }}</p>
+        <p><strong>Fecha del incidente:</strong> {{ ticket.incident_date }}</p>
+        <p><strong>Estado actual:</strong> <span class="badge {{ ticket.status|status_badge_class }}">{{ ticket.get_status_display }}</span></p>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Asignar a un agente</h6>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>{{ form.agent.label }}</label>
+                {{ form.agent }}
+                {{ form.agent.errors }}
+            </div>
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-user-check mr-1"></i> Confirmar asignación
+            </button>
+            <a href="{% url 'service_desk:unassigned_tickets' %}" class="btn btn-secondary">Volver</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

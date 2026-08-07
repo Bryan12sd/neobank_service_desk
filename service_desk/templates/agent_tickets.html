@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load service_desk_extras %}
+{% block title %}Tickets Asignados - NEOBANK{% endblock %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Tickets Asignados a mí</h1>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" width="100%" cellspacing="0">
+                <thead class="thead-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Cliente</th>
+                        <th>Asunto</th>
+                        <th>Tipo</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in tickets %}
+                    <tr>
+                        <td>{{ ticket.ticket_number }}</td>
+                        <td>{{ ticket.client.get_full_name|default:ticket.client.username }}</td>
+                        <td>{{ ticket.subject }}</td>
+                        <td>{{ ticket.get_request_type_display }}</td>
+                        <td>{{ ticket.incident_date }}</td>
+                        <td><span class="badge {{ ticket.status|status_badge_class }}">{{ ticket.get_status_display }}</span></td>
+                        <td>
+                            <a href="{% url 'service_desk:add_ticket_update' ticket.ticket_number %}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-edit"></i> Actualizar
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">No tienes tickets asignados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

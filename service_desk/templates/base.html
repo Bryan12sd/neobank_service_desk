@@ -1,4 +1,5 @@
 {% load static %}
+{% load service_desk_extras %}
 
 <!DOCTYPE html>
 <html lang="es">
@@ -65,12 +66,50 @@
                 Service Desk
             </div>
 
+            {% if request.user|has_group:"CLIENT" %}
             <li class="nav-item">
-                <a class="nav-link" href="#">
-                    <i class="fas fa-fw fa-ticket-alt"></i>
-                    <span>Tickets</span>
+                <a class="nav-link" href="{% url 'service_desk:create_ticket' %}">
+                    <i class="fas fa-fw fa-plus-circle"></i>
+                    <span>Nuevo Ticket</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'service_desk:my_tickets' %}">
+                    <i class="fas fa-fw fa-ticket-alt"></i>
+                    <span>Mis Tickets</span>
+                </a>
+            </li>
+            {% endif %}
+
+            {% if request.user|has_group:"AGENT" %}
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'service_desk:agent_tickets' %}">
+                    <i class="fas fa-fw fa-ticket-alt"></i>
+                    <span>Tickets Asignados</span>
+                </a>
+            </li>
+            {% endif %}
+
+            {% if request.user|has_group:"DEPARTMENT_HEAD" %}
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'service_desk:unassigned_tickets' %}">
+                    <i class="fas fa-fw fa-user-check"></i>
+                    <span>Asignar Tickets</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'service_desk:department_report' %}">
+                    <i class="fas fa-fw fa-chart-bar"></i>
+                    <span>Reporte por Empleado</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'service_desk:report_by_request_type' %}">
+                    <i class="fas fa-fw fa-filter"></i>
+                    <span>Reporte por Tipo</span>
+                </a>
+            </li>
+            {% endif %}
 
         </ul>
 
@@ -100,15 +139,40 @@
 
                                 {% if request.user.is_authenticated %}
                                     {{ request.user.username }}
+                                    {% if request.user|has_group:"CLIENT" %}(Cliente){% endif %}
+                                    {% if request.user|has_group:"AGENT" %}(Agente){% endif %}
+                                    {% if request.user|has_group:"DEPARTMENT_HEAD" %}(Jefe de Departamento){% endif %}
                                 {% else %}
                                     Invitado
                                 {% endif %}
                             </span>
                         </li>
+                        {% if request.user.is_authenticated %}
+                        <li class="nav-item">
+                            <form method="post" action="{% url 'service_desk:logout' %}" class="form-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="nav-link btn btn-link" style="border:none; background:none;">
+                                    <i class="fas fa-sign-out-alt mr-1"></i> Salir
+                                </button>
+                            </form>
+                        </li>
+                        {% endif %}
                     </ul>
                 </nav>
 
                 <div class="container-fluid">
+
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
                     {% block content %}
                     {% endblock %}
                 </div>

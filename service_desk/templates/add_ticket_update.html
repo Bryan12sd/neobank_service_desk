@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load service_desk_extras %}
+{% block title %}Actualizar Ticket #{{ ticket.ticket_number }} - NEOBANK{% endblock %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Actualizar Ticket #{{ ticket.ticket_number }}</h1>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Detalle del ticket</h6>
+    </div>
+    <div class="card-body">
+        <p><strong>Cliente:</strong> {{ ticket.client.get_full_name|default:ticket.client.username }}</p>
+        <p><strong>Asunto:</strong> {{ ticket.subject }}</p>
+        <p><strong>Descripción:</strong> {{ ticket.description }}</p>
+        <p><strong>Tipo:</strong> {{ ticket.get_request_type_display }}</p>
+        <p><strong>Fecha del incidente:</strong> {{ ticket.incident_date }}</p>
+        <p><strong>Estado actual:</strong> <span class="badge {{ ticket.status|status_badge_class }}">{{ ticket.get_status_display }}</span></p>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Nuevo seguimiento</h6>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>{{ form.status.label }}</label>
+                {{ form.status }}
+                {{ form.status.errors }}
+            </div>
+            <div class="form-group">
+                <label>{{ form.comment.label }}</label>
+                {{ form.comment }}
+                {{ form.comment.errors }}
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save mr-1"></i> Guardar seguimiento
+            </button>
+            <a href="{% url 'service_desk:agent_tickets' %}" class="btn btn-secondary">Volver</a>
+        </form>
+    </div>
+</div>
+
+{% if ticket.updates.all %}
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Historial de seguimientos</h6>
+    </div>
+    <div class="card-body">
+        <ul class="list-group">
+            {% for update in ticket.updates.all %}
+            <li class="list-group-item">
+                <strong>{{ update.updated_at }}</strong> — {{ update.employee.username }} —
+                <span class="badge {{ update.status|status_badge_class }}">{{ update.get_status_display }}</span>
+                <p class="mb-0">{{ update.comment }}</p>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
