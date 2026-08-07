@@ -43,6 +43,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'service_desk'
 ]
+LOGIN_URL = "service_desk:login"
+LOGIN_REDIRECT_URL = "service_desk:login"
+LOGOUT_REDIRECT_URL = "service_desk:login"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
